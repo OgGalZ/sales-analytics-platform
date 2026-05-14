@@ -1,0 +1,7 @@
+flask
+google-cloud-storage
+google-cloud-bigquery
+google-cloud-bigquery-storage
+pandas
+pyarrow
+google-generativeai

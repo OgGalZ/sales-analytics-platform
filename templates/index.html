@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales Analytics Platform</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0e1a;
+            --surface: #111827;
+            --surface2: #1a2235;
+            --border: rgba(255,255,255,0.07);
+            --blue: #4f8ef7;
+            --blue-dim: rgba(79,142,247,0.12);
+            --green: #34d399;
+            --green-dim: rgba(52,211,153,0.12);
+            --yellow: #fbbf24;
+            --yellow-dim: rgba(251,191,36,0.1);
+            --red: #f87171;
+            --text: #e2e8f0;
+            --text-dim: #64748b;
+            --mono: 'Space Mono', monospace;
+            --sans: 'DM Sans', sans-serif;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: var(--sans); background: var(--bg); color: var(--text); min-height: 100vh; }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(79,142,247,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(79,142,247,0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .sidebar {
+            position: fixed; left: 0; top: 0; bottom: 0; width: 220px;
+            background: var(--surface); border-right: 1px solid var(--border);
+            display: flex; flex-direction: column; padding: 24px 0; z-index: 10;
+        }
+
+        .logo { padding: 0 20px 24px; border-bottom: 1px solid var(--border); }
+        .logo-title { font-family: var(--mono); font-size: 11px; color: var(--blue); letter-spacing: 2px; text-transform: uppercase; }
+        .logo-sub { font-size: 10px; color: var(--text-dim); margin-top: 4px; }
+
+        .nav { padding: 16px 0; flex: 1; }
+        .nav-item {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 20px; cursor: pointer; color: var(--text-dim);
+            font-size: 13px; font-weight: 500; border-left: 2px solid transparent;
+            transition: all 0.15s; user-select: none;
+        }
+        .nav-item:hover { color: var(--text); background: var(--blue-dim); }
+        .nav-item.active { color: var(--blue); border-left-color: var(--blue); background: var(--blue-dim); }
+        .nav-icon { font-size: 16px; width: 20px; text-align: center; }
+
+        .gcp-badge {
+            margin: 0 12px; padding: 10px 12px;
+            background: var(--blue-dim); border: 1px solid rgba(79,142,247,0.2);
+            border-radius: 8px; font-size: 10px; color: var(--blue);
+            font-family: var(--mono); line-height: 1.8;
+        }
+
+        .main { margin-left: 220px; padding: 32px; position: relative; z-index: 1; }
+        .page-header { margin-bottom: 28px; }
+        .page-title { font-family: var(--mono); font-size: 20px; font-weight: 700; }
+        .page-title span { color: var(--blue); }
+        .page-sub { color: var(--text-dim); font-size: 13px; margin-top: 6px; }
+
+        .section { display: none; }
+        .section.active { display: block; }
+
+        .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 20px; }
+        .card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+        .card-icon { width: 34px; height: 34px; background: var(--blue-dim); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 17px; flex-shrink: 0; }
+        .card-title { font-size: 14px; font-weight: 600; }
+        .card-sub { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+
+        input[type="text"], select {
+            background: var(--surface2); border: 1px solid var(--border);
+            color: var(--text); padding: 10px 14px; border-radius: 8px;
+            font-family: var(--sans); font-size: 13px; outline: none;
+            transition: border-color 0.15s;
+        }
+        input[type="text"]:focus, select:focus { border-color: var(--blue); }
+        input[type="text"]::placeholder { color: var(--text-dim); }
+        select option { background: var(--surface2); }
+
+        .btn {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 9px 18px; border: none; border-radius: 8px;
+            font-family: var(--sans); font-size: 13px; font-weight: 500;
+            cursor: pointer; transition: all 0.15s; white-space: nowrap;
+        }
+        .btn-primary { background: var(--blue); color: #fff; }
+        .btn-primary:hover { background: #3a7be0; }
+        .btn-green { background: var(--green); color: #0a0e1a; }
+        .btn-green:hover { background: #2fc48a; }
+        .btn-ghost { background: var(--surface2); color: var(--text-dim); border: 1px solid var(--border); }
+        .btn-ghost:hover { color: var(--text); border-color: rgba(255,255,255,0.15); }
+
+        .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+        .label { font-size: 11px; font-weight: 600; letter-spacing: 0.8px; text-transform: uppercase; color: var(--text-dim); margin-bottom: 6px; margin-top: 18px; display: block; }
+
+        .upload-zone {
+            border: 2px dashed var(--border); border-radius: 10px; padding: 36px;
+            text-align: center; cursor: pointer; transition: all 0.2s; position: relative;
+        }
+        .upload-zone:hover { border-color: var(--blue); background: var(--blue-dim); }
+        .upload-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+        .upload-zone-icon { font-size: 30px; margin-bottom: 10px; }
+        .upload-zone-text { font-size: 13px; color: var(--text-dim); }
+        .upload-zone-text strong { color: var(--blue); }
+        #uploadFileName { margin-top: 10px; font-size: 12px; color: var(--blue); font-family: var(--mono); }
+
+        .msg { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-top: 14px; }
+        .msg-success { background: var(--green-dim); border: 1px solid rgba(52,211,153,0.25); color: var(--green); }
+        .msg-error { background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.25); color: var(--red); }
+        .msg-info { background: var(--blue-dim); border: 1px solid rgba(79,142,247,0.2); color: var(--blue); }
+
+        .table-wrapper { overflow-x: auto; margin-top: 16px; border-radius: 8px; border: 1px solid var(--border); }
+        table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        thead th { background: var(--surface2); color: var(--text-dim); padding: 10px 14px; text-align: left; font-weight: 600; font-size: 11px; letter-spacing: 0.5px; text-transform: uppercase; white-space: nowrap; border-bottom: 1px solid var(--border); }
+        tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); color: var(--text); white-space: nowrap; font-family: var(--mono); font-size: 11px; }
+        tbody tr:hover { background: var(--surface2); }
+        tbody tr:last-child td { border-bottom: none; }
+
+        .sql-block { background: var(--surface2); border: 1px solid var(--border); border-left: 3px solid var(--blue); border-radius: 8px; padding: 14px; font-family: var(--mono); font-size: 12px; color: var(--blue); margin-top: 14px; white-space: pre-wrap; display: none; }
+
+        .checkbox-group { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+        .checkbox-label { display: flex; align-items: center; gap: 6px; background: var(--surface2); border: 1px solid var(--border); padding: 6px 14px; border-radius: 20px; font-size: 12px; cursor: pointer; transition: all 0.15s; color: var(--text-dim); }
+        .checkbox-label:has(input:checked) { background: var(--blue-dim); border-color: rgba(79,142,247,0.4); color: var(--blue); }
+        .checkbox-label input { display: none; }
+
+        .target-badge { display: inline-flex; align-items: center; gap: 6px; background: var(--yellow-dim); border: 1px solid rgba(251,191,36,0.3); color: var(--yellow); padding: 5px 14px; border-radius: 20px; font-size: 12px; font-weight: 500; }
+
+        /* Model type pills */
+        .model-type-group { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+        .model-type-pill {
+            padding: 8px 16px; border-radius: 8px; font-size: 12px; font-weight: 600;
+            cursor: pointer; border: 1px solid var(--border); background: var(--surface2);
+            color: var(--text-dim); transition: all 0.15s; user-select: none;
+        }
+        .model-type-pill.selected { background: var(--blue-dim); border-color: rgba(79,142,247,0.4); color: var(--blue); }
+        .model-type-pill:hover { color: var(--text); border-color: rgba(255,255,255,0.15); }
+        .model-type-desc { font-size: 11px; color: var(--text-dim); margin-top: 6px; font-style: italic; }
+
+        .prediction-result { background: var(--green-dim); border: 1px solid rgba(52,211,153,0.25); border-radius: 10px; padding: 28px; margin-top: 20px; text-align: center; }
+        .pred-label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; }
+        .pred-value { font-family: var(--mono); font-size: 36px; color: var(--green); font-weight: 700; margin-top: 10px; }
+
+        .insights-box { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-top: 14px; font-size: 13px; line-height: 1.9; color: var(--text); display: none; }
+
+        .ask-row { display: flex; gap: 10px; margin-top: 10px; }
+        .ask-row input { flex: 1; }
+        .divider { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+
+        .predict-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 14px; margin-top: 12px; }
+        .predict-field label { font-size: 11px; color: var(--text-dim); margin-bottom: 6px; display: block; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+        .predict-field input { width: 100%; }
+
+        .spinner { display: inline-block; width: 13px; height: 13px; border: 2px solid var(--border); border-top-color: var(--blue); border-radius: 50%; animation: spin 0.8s linear infinite; vertical-align: middle; margin-right: 6px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .fade-in { animation: fadeIn 0.25s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        .extracted-values { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<nav class="sidebar">
+    <div class="logo">
+        <div class="logo-title">SAP // GCP</div>
+        <div class="logo-sub">Sales Analytics Platform</div>
+    </div>
+    <div class="nav">
+        <div class="nav-item active" onclick="navigate('upload', this)"><span class="nav-icon">📁</span> Upload Data</div>
+        <div class="nav-item" onclick="navigate('analytics', this)"><span class="nav-icon">📊</span> Analytics</div>
+        <div class="nav-item" onclick="navigate('ask', this)"><span class="nav-icon">💬</span> Ask AI</div>
+        <div class="nav-item" onclick="navigate('train', this)"><span class="nav-icon">🤖</span> Train Model</div>
+        <div class="nav-item" onclick="navigate('predict', this)"><span class="nav-icon">🔮</span> Predictions</div>
+    </div>
+    <div class="gcp-badge">☁️ europe-west9<br>BigQuery · Gemini<br>Cloud Storage</div>
+</nav>
+
+<main class="main">
+
+    <!-- UPLOAD -->
+    <div id="section-upload" class="section active">
+        <div class="page-header">
+            <div class="page-title">Upload <span>Data</span></div>
+            <div class="page-sub">CSV → Cloud Storage → BigQuery table, automatically.</div>
+        </div>
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon">📁</div>
+                <div><div class="card-title">Upload CSV file</div><div class="card-sub">Schema auto-detected, BigQuery table created instantly</div></div>
+            </div>
+            <div class="upload-zone">
+                <input type="file" id="csvFile" accept=".csv" onchange="onFileSelect(this)">
+                <div class="upload-zone-icon">☁️</div>
+                <div class="upload-zone-text">Drop your CSV here or <strong>click to browse</strong></div>
+                <div id="uploadFileName"></div>
+            </div>
+            <div class="row"><button class="btn btn-primary" onclick="uploadFile()">⬆ Upload to BigQuery</button></div>
+            <div id="uploadMessage"></div>
+            <div id="uploadError"></div>
+        </div>
+    </div>
+
+    <!-- ANALYTICS -->
+    <div id="section-analytics" class="section">
+        <div class="page-header">
+            <div class="page-title">Analytics <span>Explorer</span></div>
+            <div class="page-sub">Browse your BigQuery tables.</div>
+        </div>
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon">📊</div>
+                <div><div class="card-title">Table Viewer</div><div class="card-sub">Read directly from BigQuery — up to 100 rows</div></div>
+            </div>
+            <div class="row" style="margin-top:0">
+                <select id="analyticsTable" style="min-width:200px"><option value="">Select a table...</option></select>
+                <button class="btn btn-ghost" onclick="loadTables('analyticsTable')">↻ Refresh</button>
+                <button class="btn btn-primary" onclick="loadAnalytics()">Show Data</button>
+            </div>
+            <div id="analyticsContainer"></div>
+        </div>
+    </div>
+
+    <!-- ASK AI -->
+    <div id="section-ask" class="section">
+        <div class="page-header">
+            <div class="page-title">Ask <span>AI</span></div>
+            <div class="page-sub">Natural language → Gemini writes SQL → BigQuery executes it.</div>
+        </div>
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon">💬</div>
+                <div><div class="card-title">Smart Analytics</div><div class="card-sub">Powered by Gemini — Pre-trained API</div></div>
+            </div>
+            <span class="label">Table</span>
+            <div class="row" style="margin-top:6px">
+                <select id="askTable" style="min-width:200px"><option value="">Select a table...</option></select>
+                <button class="btn btn-ghost" onclick="loadTables('askTable')">↻ Refresh</button>
+                <button class="btn btn-green" onclick="getInsights()">🧠 Auto Insights</button>
+            </div>
+            <span class="label">Your question</span>
+            <div class="ask-row">
+                <input type="text" id="askQuestion" placeholder="e.g. How many prospects per acquisition channel?">
+                <button class="btn btn-primary" onclick="askQuestion()">✨ Ask Gemini</button>
+            </div>
+            <div class="sql-block" id="askSQL"></div>
+            <div id="askResult"></div>
+            <div class="insights-box" id="insightsResult"></div>
+        </div>
+    </div>
+
+    <!-- TRAIN -->
+    <div id="section-train" class="section">
+        <div class="page-header">
+            <div class="page-title">Train <span>Model</span></div>
+            <div class="page-sub">BigQuery ML — train directly in SQL, no Python needed.</div>
+        </div>
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon">🤖</div>
+                <div><div class="card-title">BigQuery ML</div><div class="card-sub">SELECT your data → CREATE MODEL → done</div></div>
+            </div>
+
+            <span class="label">Table</span>
+            <div class="row" style="margin-top:6px">
+                <select id="mlTable" onchange="loadColumns()" style="min-width:200px"><option value="">Select a table...</option></select>
+                <button class="btn btn-ghost" onclick="loadTables('mlTable')">↻ Refresh</button>
+            </div>
+
+            <div id="mlColumnsSection" style="display:none">
+                <span class="label">Model type</span>
+                <div class="model-type-group">
+                    <div class="model-type-pill selected" onclick="selectModelType('linear_reg', this)">
+                        📈 Linear Regression
+                    </div>
+                    <div class="model-type-pill" onclick="selectModelType('logistic_reg', this)">
+                        🔀 Logistic Regression
+                    </div>
+                    <div class="model-type-pill" onclick="selectModelType('random_forest_regressor', this)">
+                        🌲 Random Forest
+                    </div>
+                    <div class="model-type-pill" onclick="selectModelType('boosted_tree_classifier', this)">
+                        ⚡ XGBoost Classifier
+                    </div>
+                </div>
+                <div class="model-type-desc" id="modelTypeDesc">Predict a numeric value (revenue, price, quantity...)</div>
+                <input type="hidden" id="mlModelType" value="linear_reg">
+
+                <span class="label">Target — what to predict</span>
+                <select id="mlTarget" style="min-width:200px; margin-top:6px;"></select>
+
+                <span class="label">Features — select multiple</span>
+                <div id="mlColumns" class="checkbox-group"></div>
+
+                <div class="row" style="margin-top:20px">
+                    <button class="btn btn-primary" onclick="trainModel()">🚀 Train Model</button>
+                </div>
+                <div id="trainMessage"></div>
+                <div id="trainError"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PREDICT -->
+    <div id="section-predict" class="section">
+        <div class="page-header">
+            <div class="page-title">Make <span>Predictions</span></div>
+            <div class="page-sub">Two ways to predict — manual inputs or natural language.</div>
+        </div>
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon">🔮</div>
+                <div><div class="card-title">Select a model</div><div class="card-sub">BigQuery ML.PREDICT — only asks for trained features</div></div>
+            </div>
+            <div class="row" style="margin-top:0">
+                <select id="predictTable" onchange="loadPredictFeatures()" style="min-width:200px"><option value="">Select a table...</option></select>
+                <button class="btn btn-ghost" onclick="loadTables('predictTable')">↻ Refresh</button>
+            </div>
+
+            <div id="predictionInputs"></div>
+            <div class="row" style="margin-top:16px">
+                <button class="btn btn-primary" id="predictBtn" onclick="makePrediction()" style="display:none">🔮 Predict</button>
+            </div>
+            <div id="predictionResult"></div>
+
+            <hr class="divider">
+
+            <div class="card-header" style="border:none; padding-bottom:0; margin-bottom:8px;">
+                <div class="card-icon" style="background:var(--green-dim)">✨</div>
+                <div>
+                    <div class="card-title">Predict from natural language</div>
+                    <div class="card-sub">Gemini extracts values → BigQuery ML predicts</div>
+                </div>
+            </div>
+            <div class="ask-row">
+                <input type="text" id="nlSentence" placeholder="e.g. Predict the salary of a Manager in Paris with performance score 85">
+                <button class="btn btn-green" onclick="predictNL()">✨ Ask & Predict</button>
+            </div>
+            <div id="nlResult"></div>
+        </div>
+    </div>
+
+</main>
+
+<script>
+    let currentPredictFeatures = [];
+    let selectedModelType = 'linear_reg';
+
+    const modelTypeDescriptions = {
+        'linear_reg': 'Predict a numeric value (revenue, price, quantity...)',
+        'logistic_reg': 'Predict a category or class (yes/no, type, label...)',
+        'random_forest_regressor': 'Predict a numeric value — more powerful than linear regression',
+        'boosted_tree_classifier': 'Predict a category — XGBoost, best for complex classification'
+    };
+
+    function selectModelType(type, el) {
+        selectedModelType = type;
+        document.querySelectorAll('.model-type-pill').forEach(p => p.classList.remove('selected'));
+        el.classList.add('selected');
+        document.getElementById('mlModelType').value = type;
+        document.getElementById('modelTypeDesc').textContent = modelTypeDescriptions[type];
+    }
+
+    function navigate(page, el) {
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        document.getElementById('section-' + page).classList.add('active');
+        el.classList.add('active');
+    }
+
+    function showMsg(id, text, type) {
+        const cls = type === 'success' ? 'msg-success' : type === 'error' ? 'msg-error' : 'msg-info';
+        document.getElementById(id).innerHTML = `<div class="msg ${cls}">${text}</div>`;
+    }
+
+    function renderTable(data, containerId) {
+        if (!data.length) { document.getElementById(containerId).innerHTML = '<p style="color:var(--text-dim);margin-top:14px;font-size:13px">No data found.</p>'; return; }
+        const cols = Object.keys(data[0]);
+        let html = '<div class="table-wrapper fade-in"><table><thead><tr>';
+        cols.forEach(c => html += `<th>${c}</th>`);
+        html += '</tr></thead><tbody>';
+        data.forEach(row => { html += '<tr>'; cols.forEach(c => html += `<td>${row[c]}</td>`); html += '</tr>'; });
+        html += '</tbody></table></div>';
+        document.getElementById(containerId).innerHTML = html;
+    }
+
+    async function loadTables(selectId) {
+        const res = await fetch('/tables');
+        const tables = await res.json();
+        const select = document.getElementById(selectId);
+        select.innerHTML = '<option value="">Select a table...</option>';
+        tables.forEach(t => select.innerHTML += `<option value="${t}">${t}</option>`);
+    }
+
+    function onFileSelect(input) {
+        const name = input.files[0]?.name || '';
+        document.getElementById('uploadFileName').textContent = name ? '📄 ' + name : '';
+    }
+
+    async function uploadFile() {
+        const file = document.getElementById('csvFile').files[0];
+        if (!file) { showMsg('uploadError', '✗ Please select a file.', 'error'); return; }
+        showMsg('uploadMessage', '<span class="spinner"></span> Uploading to Cloud Storage + BigQuery...', 'info');
+        document.getElementById('uploadError').innerHTML = '';
+        const formData = new FormData();
+        formData.append('file', file);
+        const res = await fetch('/upload', { method: 'POST', body: formData });
+        const result = await res.json();
+        if (result.success) showMsg('uploadMessage', '✓ ' + result.success, 'success');
+        else { showMsg('uploadError', '✗ ' + result.error, 'error'); document.getElementById('uploadMessage').innerHTML = ''; }
+    }
+
+    async function loadAnalytics() {
+        const tableName = document.getElementById('analyticsTable').value;
+        if (!tableName) return;
+        showMsg('analyticsContainer', '<span class="spinner"></span> Loading from BigQuery...', 'info');
+        const res = await fetch(`/analytics/${tableName}`);
+        renderTable(await res.json(), 'analyticsContainer');
+    }
+
+    async function askQuestion() {
+        const table = document.getElementById('askTable').value;
+        const question = document.getElementById('askQuestion').value;
+        if (!table || !question) return;
+        showMsg('askResult', '<span class="spinner"></span> Gemini is generating SQL...', 'info');
+        document.getElementById('askSQL').style.display = 'none';
+        const res = await fetch('/ask', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ table, question }) });
+        const result = await res.json();
+        if (result.error) { showMsg('askResult', '✗ ' + result.error, 'error'); return; }
+        const sqlDiv = document.getElementById('askSQL');
+        sqlDiv.textContent = result.sql;
+        sqlDiv.style.display = 'block';
+        renderTable(result.data, 'askResult');
+    }
+
+    async function getInsights() {
+        const table = document.getElementById('askTable').value;
+        if (!table) return;
+        const div = document.getElementById('insightsResult');
+        div.style.display = 'block';
+        div.innerHTML = '<span class="spinner"></span> Gemini is analyzing your data...';
+        const res = await fetch(`/insights/${table}`);
+        const result = await res.json();
+        div.innerHTML = '🧠 <strong style="color:var(--blue)">AI Insights</strong><br><br>' + result.insights.replace(/\n/g, '<br>');
+        div.classList.add('fade-in');
+    }
+
+    async function loadColumns() {
+        const tableName = document.getElementById('mlTable').value;
+        if (!tableName) return;
+        const res = await fetch(`/columns/${tableName}`);
+        const columns = await res.json();
+        const targetSelect = document.getElementById('mlTarget');
+        targetSelect.innerHTML = '';
+        columns.forEach(col => targetSelect.innerHTML += `<option value="${col}">${col}</option>`);
+        const group = document.getElementById('mlColumns');
+        group.innerHTML = '';
+        columns.forEach(col => { group.innerHTML += `<label class="checkbox-label"><input type="checkbox" value="${col}" name="feature"> ${col}</label>`; });
+        document.getElementById('mlColumnsSection').style.display = 'block';
+    }
+
+    async function trainModel() {
+        const table = document.getElementById('mlTable').value;
+        const target = document.getElementById('mlTarget').value;
+        const features = [...document.querySelectorAll('input[name="feature"]:checked')].map(cb => cb.value);
+        const model_type = selectedModelType;
+
+        if (!table || !target || features.length === 0) {
+            showMsg('trainError', '✗ Select a table, a target and at least one feature.', 'error');
+            return;
+        }
+
+        showMsg('trainMessage', `<span class="spinner"></span> Training ${model_type} model on BigQuery... this may take a few minutes.`, 'info');
+        document.getElementById('trainError').innerHTML = '';
+
+        const res = await fetch('/train', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ table, target, features, model_type })
+        });
+        const result = await res.json();
+        if (result.success) showMsg('trainMessage', '✓ ' + result.success, 'success');
+        else showMsg('trainError', '✗ ' + result.error, 'error');
+    }
+
+    async function loadPredictFeatures() {
+        const tableName = document.getElementById('predictTable').value;
+        if (!tableName) return;
+        const container = document.getElementById('predictionInputs');
+        container.innerHTML = '<div class="msg msg-info" style="margin-top:14px"><span class="spinner"></span> Loading model info...</div>';
+        document.getElementById('predictBtn').style.display = 'none';
+        document.getElementById('predictionResult').innerHTML = '';
+        const res = await fetch(`/model_features/${tableName}`);
+        if (!res.ok) { container.innerHTML = '<div class="msg msg-error" style="margin-top:14px">✗ No trained model found. Train a model first.</div>'; return; }
+        const modelInfo = await res.json();
+        currentPredictFeatures = modelInfo.features;
+        container.innerHTML = `
+            <div style="margin-top:16px">
+                <span class="label">Predicting</span>
+                <div class="target-badge" style="margin-top:6px">🎯 ${modelInfo.target}</div>
+                <span style="font-size:11px; color:var(--text-dim); margin-left:8px">${modelInfo.model_type}</span>
+            </div>
+            <span class="label" style="margin-top:18px">Feature values</span>
+            <div class="predict-grid" id="predictGrid"></div>
+        `;
+        const grid = document.getElementById('predictGrid');
+        currentPredictFeatures.forEach(col => { grid.innerHTML += `<div class="predict-field"><label>${col}</label><input type="text" id="pred_${col}" placeholder="${col}"></div>`; });
+        document.getElementById('predictBtn').style.display = 'inline-flex';
+    }
+
+    async function makePrediction() {
+        const tableName = document.getElementById('predictTable').value;
+        const values = {};
+        currentPredictFeatures.forEach(col => { const val = document.getElementById(`pred_${col}`)?.value; if (val) values[col] = val; });
+        if (!Object.keys(values).length) { showMsg('predictionResult', '✗ Enter at least one feature value.', 'error'); return; }
+        showMsg('predictionResult', '<span class="spinner"></span> Running ML.PREDICT on BigQuery...', 'info');
+        const res = await fetch('/predict', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ table: tableName, values }) });
+        const result = await res.json();
+        if (result.error) { showMsg('predictionResult', '✗ ' + result.error, 'error'); return; }
+        if (result[0]) {
+            const predicted = Object.entries(result[0]).find(([k]) => k.startsWith('predicted'));
+            const val = predicted ? predicted[1] : JSON.stringify(result[0]);
+            const numVal = parseFloat(val);
+            const displayVal = isNaN(numVal) ? val : numVal.toFixed(2);
+            document.getElementById('predictionResult').innerHTML = `
+                <div class="prediction-result fade-in">
+                    <div class="pred-label">Predicted value</div>
+                    <div class="pred-value">${displayVal}</div>
+                </div>`;
+        }
+    }
+
+    async function predictNL() {
+        const table = document.getElementById('predictTable').value;
+        const sentence = document.getElementById('nlSentence').value;
+        if (!table) { showMsg('nlResult', '✗ Select a table first.', 'error'); return; }
+        if (!sentence) { showMsg('nlResult', '✗ Enter a sentence.', 'error'); return; }
+        showMsg('nlResult', '<span class="spinner"></span> Gemini is extracting values...', 'info');
+        const res = await fetch('/predict_nl', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ table, sentence }) });
+        const result = await res.json();
+        if (result.error) { showMsg('nlResult', '✗ ' + result.error, 'error'); return; }
+        const extracted = Object.entries(result.extracted_values).map(([k, v]) => `<span class="target-badge" style="margin:2px; font-size:11px">${k}: ${v}</span>`).join(' ');
+        const numVal = parseFloat(result.prediction);
+        const displayVal = isNaN(numVal) ? result.prediction : numVal.toFixed(2);
+        document.getElementById('nlResult').innerHTML = `
+            <div style="margin-top:14px">
+                <span class="label">Values extracted by Gemini</span>
+                <div class="extracted-values">${extracted}</div>
+            </div>
+            <div class="prediction-result fade-in" style="margin-top:14px">
+                <div class="pred-label">Predicted ${result.target}</div>
+                <div class="pred-value">${displayVal}</div>
+            </div>`;
+    }
+</script>
+</body>
+</html>
