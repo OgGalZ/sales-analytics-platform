@@ -16,7 +16,7 @@ DATASET_ID = "sales_analytics"
 storage_client = storage.Client()
 bq_client = bigquery.Client()
 
-genai.configure(api_key="AIzaSyC09PA7RdJNd6GXSbXykCRz9Kt90kyh5sY")
+genai.configure(api_key="AIzaSyAJ_3t7vxjmtyGEsQ8-CGXwvsVn4y4paAE")
 gemini = genai.GenerativeModel("gemini-2.5-flash")
 
 
@@ -315,5 +315,5 @@ Rules:
 if __name__ == '__main__':
     init_metadata_table()
     import os
-    port = int(os.environ.get('PORT', 8080))
+    port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=False)
